@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import { Search, User } from 'lucide-react'
+import { useCustomerNames } from '../lib/customerNames.jsx'
+import PhonePill from './PhonePill.jsx'
 
 function extractPreview(message) {
   const content = message?.content
@@ -24,6 +26,7 @@ export default function Sidebar({ selectedSession, onSelectSession }) {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [pulseIds, setPulseIds] = useState({})
+  const { names: customerNames } = useCustomerNames()
   const selectedRef = useRef(selectedSession)
   useEffect(() => { selectedRef.current = selectedSession }, [selectedSession])
 
@@ -121,11 +124,15 @@ export default function Sidebar({ selectedSession, onSelectSession }) {
   const filtered = useMemo(() => {
     if (!search.trim()) return sessions
     const q = search.toLowerCase()
-    return sessions.filter(s =>
-      (s.session_id || '').toLowerCase().includes(q) ||
-      (s.preview || '').toLowerCase().includes(q)
-    )
-  }, [sessions, search])
+    return sessions.filter(s => {
+      const name = customerNames[s.session_id] || ''
+      return (
+        (s.session_id || '').toLowerCase().includes(q) ||
+        (s.preview || '').toLowerCase().includes(q) ||
+        name.toLowerCase().includes(q)
+      )
+    })
+  }, [sessions, search, customerNames])
 
   return (
     <aside className="w-[340px] shrink-0 bg-wa-panel border-r border-wa-border flex flex-col min-h-0" data-testid="sidebar">
@@ -154,6 +161,7 @@ export default function Sidebar({ selectedSession, onSelectSession }) {
             {filtered.map((s) => {
               const active = s.session_id === selectedSession
               const pulsing = Boolean(pulseIds[s.session_id])
+              const name = customerNames[s.session_id]
               return (
                 <li key={s.session_id}>
                   <button
@@ -169,7 +177,26 @@ export default function Sidebar({ selectedSession, onSelectSession }) {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-medium text-wa-text truncate">{s.session_id}</span>
+                        <div className="min-w-0 flex items-center gap-1.5">
+                          {name ? (
+                            <>
+                              <span
+                                className="text-sm font-semibold text-wa-text truncate"
+                                data-testid={`chat-item-name-${s.session_id}`}
+                              >
+                                {name}
+                              </span>
+                              <PhonePill phone={s.session_id} />
+                            </>
+                          ) : (
+                            <span
+                              className="text-sm font-medium text-wa-text truncate"
+                              data-testid={`chat-item-phone-${s.session_id}`}
+                            >
+                              {s.session_id}
+                            </span>
+                          )}
+                        </div>
                         <span className="text-[10px] text-wa-muted shrink-0">{relativeTime(s.ts)}</span>
                       </div>
                       <div className="flex items-center justify-between gap-2 mt-0.5">

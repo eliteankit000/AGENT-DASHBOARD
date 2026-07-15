@@ -10,6 +10,7 @@ import TopStatsBar from './components/TopStatsBar.jsx'
 import BookingsPage from './components/BookingsPage.jsx'
 import SettingsPage from './components/SettingsPage.jsx'
 import SchemaMissing from './components/SchemaMissing.jsx'
+import { CustomerNamesProvider } from './lib/customerNames.jsx'
 import { MessageCircle, CalendarCheck, Settings as SettingsIcon, LogOut } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
@@ -96,26 +97,28 @@ function DashboardShell({ settings, refreshSettings }) {
   const [selectedSession, setSelectedSession] = useState(null)
 
   return (
-    <div className="h-screen flex bg-wa-bg text-wa-text overflow-hidden">
-      <NavRail agencyName={settings?.agency_name} agencyLogoUrl={settings?.agency_logo_url} />
-      <div className="flex-1 flex flex-col min-w-0">
-        <TopStatsBar agencyName={settings?.agency_name} />
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <div className="flex-1 flex min-h-0">
-                <Sidebar selectedSession={selectedSession} onSelectSession={setSelectedSession} />
-                <ChatWindow sessionId={selectedSession} />
-              </div>
-            }
-          />
-          <Route path="/bookings" element={<BookingsPage />} />
-          <Route path="/settings" element={<SettingsPage settings={settings} onSaved={refreshSettings} />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+    <CustomerNamesProvider>
+      <div className="h-screen flex bg-wa-bg text-wa-text overflow-hidden">
+        <NavRail agencyName={settings?.agency_name} agencyLogoUrl={settings?.agency_logo_url} />
+        <div className="flex-1 flex flex-col min-w-0">
+          <TopStatsBar agencyName={settings?.agency_name} />
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <div className="flex-1 flex min-h-0">
+                  <Sidebar selectedSession={selectedSession} onSelectSession={setSelectedSession} />
+                  <ChatWindow sessionId={selectedSession} />
+                </div>
+              }
+            />
+            <Route path="/bookings" element={<BookingsPage />} />
+            <Route path="/settings" element={<SettingsPage settings={settings} onSaved={refreshSettings} />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </div>
       </div>
-    </div>
+    </CustomerNamesProvider>
   )
 }
 

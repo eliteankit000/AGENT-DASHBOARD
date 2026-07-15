@@ -3,11 +3,14 @@ import { supabase } from '../lib/supabaseClient.js'
 import MessageBubble from './MessageBubble.jsx'
 import BookingBadge from './BookingBadge.jsx'
 import { MessageSquare, User, Phone } from 'lucide-react'
+import { useCustomerName } from '../lib/customerNames.jsx'
+import PhonePill from './PhonePill.jsx'
 
 export default function ChatWindow({ sessionId }) {
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(false)
   const [booking, setBooking] = useState(null)
+  const customerName = useCustomerName(sessionId)
   const bottomRef = useRef(null)
 
   useEffect(() => {
@@ -100,8 +103,25 @@ export default function ChatWindow({ sessionId }) {
           <User size={18} />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-sm font-medium text-wa-text truncate">{sessionId}</div>
-          <div className="text-xs text-wa-muted flex items-center gap-1">
+          {customerName ? (
+            <div className="flex items-center gap-2 min-w-0">
+              <span
+                className="text-sm font-semibold text-wa-text truncate"
+                data-testid="chat-header-name"
+              >
+                {customerName}
+              </span>
+              <PhonePill phone={sessionId} />
+            </div>
+          ) : (
+            <div
+              className="text-sm font-medium text-wa-text truncate"
+              data-testid="chat-header-phone"
+            >
+              {sessionId}
+            </div>
+          )}
+          <div className="text-xs text-wa-muted flex items-center gap-1 mt-0.5">
             <Phone size={11} /> WhatsApp customer
           </div>
         </div>
