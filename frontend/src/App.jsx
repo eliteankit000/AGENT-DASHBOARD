@@ -9,8 +9,12 @@ import ChatWindow from './components/ChatWindow.jsx'
 import TopStatsBar from './components/TopStatsBar.jsx'
 import BookingsPage from './components/BookingsPage.jsx'
 import SettingsPage from './components/SettingsPage.jsx'
+import SchemaMissing from './components/SchemaMissing.jsx'
 import { MessageCircle, CalendarCheck, Settings as SettingsIcon, LogOut } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+
+// Postgrest error codes indicating a required table has not been created yet
+const TABLE_MISSING_CODES = new Set(['PGRST205', '42P01'])
 
 function ConfigMissing() {
   return (
@@ -120,7 +124,7 @@ export default function App() {
   const [session, setSession] = useState(null)
   const [settings, setSettings] = useState(null)
   const [adminExists, setAdminExists] = useState(null)
-  const [settingsChecked, setSettingsChecked] = useState(false)
+  const [missingTables, setMissingTables] = useState([])
 
   const loadSettings = useCallback(async () => {
     if (!supabase) return
@@ -129,53 +133,57 @@ export default function App() {
       .select('*')
       .eq('id', 1)
       .maybeSingle()
-    if (error && error.code !== 'PGRST116') {
-      console.warn('dashboard_settings load error', error.message)
+    if (error) {
+      if (TABLE_MISSING_CODES.has(error.code)) {
+        setMissingTables((prev) => Array.from(new Set([...prev, 'dashboard_settings'])))
+      } else if (error.code !== 'PGRST116') {
+        console.warn('dashboard_settings load error', error.message)
+      }
     }
     setSettings(data || null)
-    setSettingsChecked(true)
   }, [])
 
   const checkAdminExists = useCallback(async () => {
     if (!supabase) return
-    // Heuristic: if a session exists someone signed up before; otherwise we
-    // rely on the flag stored in dashboard_settings.admin_bootstrapped or
-    // a marker row. To keep it simple: attempt a sign-in with an obviously
-    // wrong password on a probe email is not possible; instead we mark
-    // bootstrap on first successful signup via dashboard_settings.
-    // We treat "admin exists" as true whenever dashboard_settings row has
-    // been created AND signup has already run once (stored flag).
-    try {
-      const { data } = await supabase
-        .from('dashboard_settings')
-        .select('id, admin_bootstrapped')
-        .eq('id', 1)
-        .maybeSingle()
-      setAdminExists(Boolean(data?.admin_bootstrapped))
-    } catch {
-      setAdminExists(false)
+    const { data, error } = await supabase
+      .from('dashboard_settings')
+      .select('id, admin_bootstrapped')
+      .eq('id', 1)
+      .maybeSingle()
+    if (error && TABLE_MISSING_CODES.has(error.code)) {
+      setMissingTables((prev) => Array.from(new Set([...prev, 'dashboard_settings'])))
+    }
+    setAdminExists(Boolean(data?.admin_bootstrapped))
+  }, [])
+
+  const probeBookingsTable = useCallback(async () => {
+    if (!supabase) return
+    const { error } = await supabase.from('bookings').select('id', { head: true, count: 'exact' }).limit(1)
+    if (error && TABLE_MISSING_CODES.has(error.code)) {
+      setMissingTables((prev) => Array.from(new Set([...prev, 'bookings'])))
     }
   }, [])
+
+  const runBootstrap = useCallback(async () => {
+    setMissingTables([])
+    const { data } = await supabase.auth.getSession()
+    setSession(data.session)
+    await Promise.all([loadSettings(), checkAdminExists(), probeBookingsTable()])
+    setLoading(false)
+  }, [loadSettings, checkAdminExists, probeBookingsTable])
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
       setLoading(false)
       return
     }
-    const init = async () => {
-      const { data } = await supabase.auth.getSession()
-      setSession(data.session)
-      await loadSettings()
-      await checkAdminExists()
-      setLoading(false)
-    }
-    init()
+    runBootstrap()
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s)
     })
     return () => sub.subscription.unsubscribe()
-  }, [loadSettings, checkAdminExists])
+  }, [runBootstrap])
 
   if (!isSupabaseConfigured) {
     return <ConfigMissing />
@@ -186,6 +194,19 @@ export default function App() {
       <div className="min-h-screen flex items-center justify-center bg-wa-bg" data-testid="loading">
         <div className="text-wa-accent text-lg">Loading…</div>
       </div>
+    )
+  }
+
+  // Guard: required tables missing in Supabase
+  if (missingTables.length > 0) {
+    return (
+      <SchemaMissing
+        missingTables={missingTables}
+        onRetry={async () => {
+          setLoading(true)
+          await runBootstrap()
+        }}
+      />
     )
   }
 
