@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import { Save, Image as ImageIcon } from 'lucide-react'
+import AgencyLogo from './AgencyLogo.jsx'
 
 export default function SettingsPage({ settings, onSaved }) {
   const [agencyName, setAgencyName] = useState(settings?.agency_name || '')
@@ -63,15 +64,8 @@ export default function SettingsPage({ settings, onSaved }) {
               className="w-full bg-wa-hover border border-wa-border rounded-md px-3 py-2 text-wa-text placeholder:text-wa-muted focus:border-wa-accent focus:outline-none"
             />
             {logoUrl && (
-              <div className="mt-3 flex items-center gap-3">
-                <div className="w-14 h-14 rounded-lg bg-wa-hover border border-wa-border flex items-center justify-center overflow-hidden">
-                  <img
-                    src={logoUrl}
-                    alt="Logo preview"
-                    className="w-full h-full object-cover"
-                    onError={(e) => { e.currentTarget.style.display = 'none' }}
-                  />
-                </div>
+              <div className="mt-3 flex items-center gap-3" data-testid="settings-logo-preview">
+                <AgencyLogo name={agencyName} url={logoUrl} size={56} testId="settings-logo" />
                 <span className="text-xs text-wa-muted flex items-center gap-1"><ImageIcon size={12} /> Logo preview</span>
               </div>
             )}

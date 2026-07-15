@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import { UserPlus } from 'lucide-react'
+import AgencyLogo from './AgencyLogo.jsx'
 
-export default function AdminSignup({ agencyName, onDone }) {
+export default function AdminSignup({ agencyName, agencyLogoUrl, onDone }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -54,9 +55,14 @@ export default function AdminSignup({ agencyName, onDone }) {
         className="w-full max-w-md bg-wa-panel border border-wa-border rounded-xl p-8 space-y-5 shadow-xl"
         data-testid="admin-signup"
       >
-        <div className="flex items-center gap-2 text-wa-accent">
-          <UserPlus size={22} />
-          <h1 className="text-xl font-semibold">Create Admin Account</h1>
+        <div className="flex items-center gap-3">
+          <AgencyLogo name={agencyName} url={agencyLogoUrl} size={44} testId="signup-agency-logo" />
+          <div className="min-w-0">
+            <h1 className="text-lg font-semibold text-wa-text truncate">
+              {agencyName || 'Agent Live Dashboard'}
+            </h1>
+            <p className="text-xs text-wa-muted flex items-center gap-1"><UserPlus size={11} /> Create admin account</p>
+          </div>
         </div>
         <p className="text-sm text-wa-muted">
           {agencyName ? <>Set up the first admin login for <span className="text-wa-text font-medium">{agencyName}</span>.</> : 'Set up the first admin login.'}

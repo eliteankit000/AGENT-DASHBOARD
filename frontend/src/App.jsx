@@ -10,6 +10,7 @@ import TopStatsBar from './components/TopStatsBar.jsx'
 import BookingsPage from './components/BookingsPage.jsx'
 import SettingsPage from './components/SettingsPage.jsx'
 import SchemaMissing from './components/SchemaMissing.jsx'
+import AgencyLogo from './components/AgencyLogo.jsx'
 import { CustomerNamesProvider } from './lib/customerNames.jsx'
 import { MessageCircle, CalendarCheck, Settings as SettingsIcon, LogOut } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -54,14 +55,8 @@ function NavRail({ agencyName, agencyLogoUrl }) {
 
   return (
     <div className="w-16 shrink-0 bg-wa-panel border-r border-wa-border flex flex-col items-center py-4 gap-1" data-testid="nav-rail">
-      <div className="w-10 h-10 rounded-full bg-wa-hover flex items-center justify-center overflow-hidden mb-3 border border-wa-border" title={agencyName}>
-        {agencyLogoUrl ? (
-          <img src={agencyLogoUrl} alt={agencyName} className="w-full h-full object-cover" />
-        ) : (
-          <span className="text-wa-accent font-semibold text-sm">
-            {(agencyName || 'A').slice(0, 1).toUpperCase()}
-          </span>
-        )}
+      <div className="mb-3">
+        <AgencyLogo name={agencyName} url={agencyLogoUrl} size={40} testId="nav-agency-logo" />
       </div>
       {links.map(({ to, icon: Icon, label, testid }) => {
         const active = location.pathname === to || (to === '/' && location.pathname.startsWith('/chats'))
@@ -223,6 +218,7 @@ export default function App() {
     return (
       <AdminSignup
         agencyName={settings.agency_name}
+        agencyLogoUrl={settings.agency_logo_url}
         onDone={async () => { await checkAdminExists() }}
       />
     )
@@ -230,7 +226,7 @@ export default function App() {
 
   // Step 3: if not authenticated, show login
   if (!session) {
-    return <LoginScreen agencyName={settings.agency_name} />
+    return <LoginScreen agencyName={settings.agency_name} agencyLogoUrl={settings.agency_logo_url} />
   }
 
   // Step 4: main dashboard

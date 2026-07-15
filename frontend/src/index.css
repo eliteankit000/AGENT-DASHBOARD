@@ -77,3 +77,19 @@ button:focus-visible, input:focus-visible {
   background-color: rgba(37, 211, 102, 0.35);
   color: #fff;
 }
+
+/* Agency logo — always fills its circular container without distortion */
+.agency-logo-container {
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+img.agency-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
