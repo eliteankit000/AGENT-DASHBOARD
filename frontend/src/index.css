@@ -93,3 +93,12 @@ img.agency-logo {
   object-position: center;
   display: block;
 }
+
+/* Hide scrollbar without disabling scroll (used for mobile stats strip) */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}

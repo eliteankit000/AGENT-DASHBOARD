@@ -38,32 +38,31 @@ VITE_SUPABASE_ANON_KEY=<your anon public key>`}
   )
 }
 
-function NavRail({ agencyName, agencyLogoUrl }) {
+const NAV_LINKS = [
+  { to: '/', icon: MessageCircle, label: 'Chats', testid: 'nav-chats' },
+  { to: '/bookings', icon: CalendarCheck, label: 'Bookings', testid: 'nav-bookings' },
+  { to: '/settings', icon: SettingsIcon, label: 'Settings', testid: 'nav-settings' }
+]
+
+function isNavActive(pathname, to) {
+  if (to === '/') return pathname === '/' || pathname.startsWith('/chats')
+  return pathname === to
+}
+
+function NavRail({ agencyName, agencyLogoUrl, onLogout, onNavigate }) {
   const location = useLocation()
-  const navigate = useNavigate()
-
-  const links = [
-    { to: '/', icon: MessageCircle, label: 'Live Chats', testid: 'nav-chats' },
-    { to: '/bookings', icon: CalendarCheck, label: 'Bookings', testid: 'nav-bookings' },
-    { to: '/settings', icon: SettingsIcon, label: 'Settings', testid: 'nav-settings' }
-  ]
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    navigate('/', { replace: true })
-  }
 
   return (
-    <div className="w-16 shrink-0 bg-wa-panel border-r border-wa-border flex flex-col items-center py-4 gap-1" data-testid="nav-rail">
+    <div className="hidden md:flex w-16 shrink-0 bg-wa-panel border-r border-wa-border flex-col items-center py-4 gap-1" data-testid="nav-rail">
       <div className="mb-3">
         <AgencyLogo name={agencyName} url={agencyLogoUrl} size={40} testId="nav-agency-logo" />
       </div>
-      {links.map(({ to, icon: Icon, label, testid }) => {
-        const active = location.pathname === to || (to === '/' && location.pathname.startsWith('/chats'))
+      {NAV_LINKS.map(({ to, icon: Icon, label, testid }) => {
+        const active = isNavActive(location.pathname, to)
         return (
           <button
             key={to}
-            onClick={() => navigate(to)}
+            onClick={() => onNavigate(to)}
             data-testid={testid}
             title={label}
             className={
@@ -77,7 +76,7 @@ function NavRail({ agencyName, agencyLogoUrl }) {
       })}
       <div className="flex-1" />
       <button
-        onClick={handleLogout}
+        onClick={onLogout}
         data-testid="nav-logout"
         title="Log out"
         className="w-11 h-11 rounded-lg flex items-center justify-center text-wa-muted hover:text-wa-cancelled hover:bg-wa-hover transition-colors"
@@ -88,22 +87,89 @@ function NavRail({ agencyName, agencyLogoUrl }) {
   )
 }
 
+function BottomNav({ onLogout, onNavigate }) {
+  const location = useLocation()
+  const items = [...NAV_LINKS, { to: '__logout', icon: LogOut, label: 'Logout', testid: 'nav-logout-mobile' }]
+  return (
+    <nav
+      className="md:hidden fixed bottom-0 inset-x-0 z-30 h-14 bg-wa-panel border-t border-wa-border flex items-stretch"
+      data-testid="bottom-nav"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
+      {items.map(({ to, icon: Icon, label, testid }) => {
+        const active = to !== '__logout' && isNavActive(location.pathname, to)
+        const handleClick = to === '__logout' ? onLogout : () => onNavigate(to)
+        return (
+          <button
+            key={testid}
+            onClick={handleClick}
+            data-testid={testid}
+            className={
+              'flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors ' +
+              (active
+                ? 'text-wa-accent'
+                : to === '__logout'
+                  ? 'text-wa-muted hover:text-wa-cancelled'
+                  : 'text-wa-muted hover:text-wa-text')
+            }
+          >
+            <Icon size={20} strokeWidth={1.8} />
+            <span className="leading-none">{label}</span>
+          </button>
+        )
+      })}
+    </nav>
+  )
+}
+
 function DashboardShell({ settings, refreshSettings }) {
   const [selectedSession, setSelectedSession] = useState(null)
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    navigate('/', { replace: true })
+  }
+
+  const handleNavigate = (to) => {
+    // When user taps "Chats" bring them back to the sidebar list (mobile UX)
+    if (to === '/') setSelectedSession(null)
+    navigate(to)
+  }
+
+  // On mobile the "/" route is either sidebar OR chat, not both
+  const onHome = location.pathname === '/'
+  const mobileShowChat = onHome && selectedSession
 
   return (
     <CustomerNamesProvider>
       <div className="h-screen flex bg-wa-bg text-wa-text overflow-hidden">
-        <NavRail agencyName={settings?.agency_name} agencyLogoUrl={settings?.agency_logo_url} />
-        <div className="flex-1 flex flex-col min-w-0">
+        <NavRail
+          agencyName={settings?.agency_name}
+          agencyLogoUrl={settings?.agency_logo_url}
+          onLogout={handleLogout}
+          onNavigate={handleNavigate}
+        />
+        <div className="flex-1 flex flex-col min-w-0 pb-14 md:pb-0">
           <TopStatsBar agencyName={settings?.agency_name} />
           <Routes>
             <Route
               path="/"
               element={
                 <div className="flex-1 flex min-h-0">
-                  <Sidebar selectedSession={selectedSession} onSelectSession={setSelectedSession} />
-                  <ChatWindow sessionId={selectedSession} />
+                  <div className={(mobileShowChat ? 'hidden' : 'flex') + ' md:flex w-full md:w-auto min-h-0'}>
+                    <Sidebar
+                      selectedSession={selectedSession}
+                      onSelectSession={setSelectedSession}
+                    />
+                  </div>
+                  <div className={(mobileShowChat ? 'flex' : 'hidden') + ' md:flex flex-1 min-w-0 min-h-0'}>
+                    <ChatWindow
+                      sessionId={selectedSession}
+                      onBack={() => setSelectedSession(null)}
+                    />
+                  </div>
                 </div>
               }
             />
@@ -112,6 +178,7 @@ function DashboardShell({ settings, refreshSettings }) {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
+        <BottomNav onLogout={handleLogout} onNavigate={handleNavigate} />
       </div>
     </CustomerNamesProvider>
   )

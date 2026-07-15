@@ -135,7 +135,7 @@ export default function Sidebar({ selectedSession, onSelectSession }) {
   }, [sessions, search, customerNames])
 
   return (
-    <aside className="w-[340px] shrink-0 bg-wa-panel border-r border-wa-border flex flex-col min-h-0" data-testid="sidebar">
+    <aside className="w-full md:w-[260px] lg:w-[340px] shrink-0 bg-wa-panel md:border-r md:border-wa-border flex flex-col min-h-0" data-testid="sidebar">
       <div className="p-3 border-b border-wa-border">
         <div className="relative">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-wa-muted" />
@@ -168,8 +168,8 @@ export default function Sidebar({ selectedSession, onSelectSession }) {
                     data-testid={`chat-item-${s.session_id}`}
                     onClick={() => onSelectSession(s.session_id)}
                     className={
-                      'w-full text-left flex items-center gap-3 px-3 py-3 border-b border-wa-border/60 transition-colors ' +
-                      (active ? 'bg-wa-hover' : 'hover:bg-wa-hover/70')
+                      'w-full text-left flex items-center gap-3 px-3 py-3 min-h-[60px] border-b border-wa-border/60 transition-colors ' +
+                      (active ? 'bg-wa-hover' : 'hover:bg-wa-hover/70 active:bg-wa-hover')
                     }
                   >
                     <div className="w-10 h-10 rounded-full bg-wa-hover border border-wa-border flex items-center justify-center text-wa-muted shrink-0">

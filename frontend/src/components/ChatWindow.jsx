@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import MessageBubble from './MessageBubble.jsx'
 import BookingBadge from './BookingBadge.jsx'
-import { MessageSquare, User, Phone } from 'lucide-react'
+import { MessageSquare, User, Phone, ArrowLeft } from 'lucide-react'
 import { useCustomerName } from '../lib/customerNames.jsx'
 import PhonePill from './PhonePill.jsx'
 
-export default function ChatWindow({ sessionId }) {
+export default function ChatWindow({ sessionId, onBack }) {
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(false)
   const [booking, setBooking] = useState(null)
@@ -98,8 +98,18 @@ export default function ChatWindow({ sessionId }) {
   return (
     <div className="flex-1 flex flex-col min-h-0 chat-bg" data-testid="chat-window">
       {/* Header */}
-      <div className="bg-wa-panel border-b border-wa-border px-4 py-3 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-wa-hover border border-wa-border flex items-center justify-center text-wa-muted">
+      <div className="bg-wa-panel border-b border-wa-border px-3 md:px-4 py-3 flex items-center gap-3">
+        {onBack && (
+          <button
+            onClick={onBack}
+            data-testid="chat-back"
+            aria-label="Back to chats"
+            className="md:hidden w-11 h-11 -ml-1 rounded-lg flex items-center justify-center text-wa-muted hover:text-wa-text hover:bg-wa-hover transition-colors"
+          >
+            <ArrowLeft size={20} />
+          </button>
+        )}
+        <div className="w-10 h-10 rounded-full bg-wa-hover border border-wa-border flex items-center justify-center text-wa-muted shrink-0">
           <User size={18} />
         </div>
         <div className="min-w-0 flex-1">

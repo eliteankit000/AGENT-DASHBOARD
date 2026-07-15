@@ -78,7 +78,7 @@ export default function LoginScreen({ agencyName, agencyLogoUrl }) {
           type="submit"
           disabled={submitting}
           data-testid="login-submit"
-          className="w-full bg-wa-accent hover:bg-wa-accent-2 disabled:opacity-60 text-wa-bg font-semibold py-2.5 rounded-md transition-colors"
+          className="w-full min-h-[44px] bg-wa-accent hover:bg-wa-accent-2 disabled:opacity-60 text-wa-bg font-semibold py-2.5 rounded-md transition-colors"
         >
           {submitting ? 'Signing in…' : 'Sign in'}
         </button>

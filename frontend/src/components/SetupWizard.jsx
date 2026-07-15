@@ -78,7 +78,7 @@ export default function SetupWizard({ onDone }) {
           type="submit"
           disabled={submitting}
           data-testid="setup-submit"
-          className="w-full bg-wa-accent hover:bg-wa-accent-2 disabled:opacity-60 text-wa-bg font-semibold py-2.5 rounded-md transition-colors"
+          className="w-full min-h-[44px] bg-wa-accent hover:bg-wa-accent-2 disabled:opacity-60 text-wa-bg font-semibold py-2.5 rounded-md transition-colors"
         >
           {submitting ? 'Saving…' : 'Continue'}
         </button>

@@ -23,7 +23,7 @@ export default function MessageBubble({ message, timestamp }) {
     >
       <div
         className={
-          'relative max-w-[75%] rounded-lg px-3 pt-2 pb-1.5 shadow-sm ' +
+          'relative max-w-[85%] md:max-w-[75%] rounded-lg px-3 pt-2 pb-1.5 shadow-sm ' +
           (isAi
             ? 'bg-wa-outgoing text-wa-text rounded-tr-sm'
             : 'bg-wa-incoming text-wa-text rounded-tl-sm')

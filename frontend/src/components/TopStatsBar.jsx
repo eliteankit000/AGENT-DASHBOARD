@@ -69,24 +69,24 @@ export default function TopStatsBar({ agencyName }) {
   ]
 
   return (
-    <header className="bg-wa-panel border-b border-wa-border px-4 py-3 flex items-center gap-4" data-testid="top-stats-bar">
+    <header className="bg-wa-panel border-b border-wa-border px-3 md:px-4 py-2 md:py-3 flex items-center gap-4" data-testid="top-stats-bar">
       <div className="text-sm text-wa-muted mr-2 hidden md:block">
         <span className="text-wa-text font-semibold">{agencyName || 'Agency'}</span>
         <span className="mx-2 text-wa-border">•</span>
         Live Agent Dashboard
       </div>
-      <div className="flex-1" />
-      <div className="flex items-center gap-2 md:gap-3 flex-wrap">
+      <div className="hidden md:block flex-1" />
+      <div className="flex items-center gap-2 md:gap-3 flex-nowrap overflow-x-auto md:flex-wrap md:overflow-visible -mx-3 md:mx-0 px-3 md:px-0 scrollbar-none">
         {cards.map(({ key, icon: Icon, label, value, color }) => (
           <div
             key={key}
             data-testid={`stat-${key}`}
-            className="flex items-center gap-2 bg-wa-hover border border-wa-border rounded-md px-3 py-1.5"
+            className="flex items-center gap-2 bg-wa-hover border border-wa-border rounded-md px-3 py-1.5 shrink-0"
           >
             <Icon size={16} className={color} />
             <div className="leading-tight">
               <div className={`text-sm font-bold ${color}`}>{value}</div>
-              <div className="text-[10px] uppercase tracking-wide text-wa-muted">{label}</div>
+              <div className="text-[10px] uppercase tracking-wide text-wa-muted whitespace-nowrap">{label}</div>
             </div>
           </div>
         ))}

@@ -36,8 +36,8 @@ export default function SettingsPage({ settings, onSaved }) {
 
   return (
     <div className="flex-1 overflow-y-auto min-h-0 bg-wa-bg" data-testid="settings-page">
-      <div className="max-w-2xl mx-auto p-6">
-        <h1 className="text-2xl font-semibold text-wa-text mb-1">Settings</h1>
+      <div className="max-w-2xl mx-auto p-4 md:p-6">
+        <h1 className="text-xl md:text-2xl font-semibold text-wa-text mb-1">Settings</h1>
         <p className="text-sm text-wa-muted mb-6">Update your agency branding. No redeploy required.</p>
 
         <form
