@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: #0B141A;
+  --bg-panel: #111B21;
+  --bg-hover: #202C33;
+  --accent-primary: #25D366;
+  --accent-secondary: #00A884;
+  --bubble-incoming: #202C33;
+  --bubble-outgoing: #005C4B;
+  --text-primary: #E9EDEF;
+  --text-secondary: #8696A0;
+  --border: #2A3942;
+  --badge-confirmed: #25D366;
+  --badge-cancelled: #F15C6D;
+  --badge-pending: #FFB020;
+  --badge-ai: #54656F;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* WhatsApp-style subtle grain background for chat window */
+.chat-bg {
+  background-color: #0B141A;
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    radial-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 24px 24px, 48px 48px;
+  background-position: 0 0, 12px 12px;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #2A3942;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #374248;
+}
+
+input, textarea, select, button {
+  font-family: inherit;
+}
+
+button:focus-visible, input:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+
+/* Selection */
+::selection {
+  background-color: rgba(37, 211, 102, 0.35);
+  color: #fff;
+}
