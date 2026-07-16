@@ -123,7 +123,7 @@ function BottomNav({ onLogout, onNavigate }) {
   )
 }
 
-function DashboardShell({ settings, refreshSettings }) {
+function DashboardShell({ settings, refreshSettings, session }) {
   const [selectedSession, setSelectedSession] = useState(null)
   const navigate = useNavigate()
   const location = useLocation()
@@ -142,45 +142,49 @@ function DashboardShell({ settings, refreshSettings }) {
   // On mobile the "/" route is either sidebar OR chat, not both
   const onHome = location.pathname === '/'
   const mobileShowChat = onHome && selectedSession
+  const staffName = session?.user?.email || null
 
   return (
     <CustomerNamesProvider>
-      <div className="h-screen flex bg-wa-bg text-wa-text overflow-hidden">
-        <NavRail
-          agencyName={settings?.agency_name}
-          agencyLogoUrl={settings?.agency_logo_url}
-          onLogout={handleLogout}
-          onNavigate={handleNavigate}
-        />
-        <div className="flex-1 flex flex-col min-w-0 pb-14 md:pb-0">
-          <TopStatsBar agencyName={settings?.agency_name} />
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <div className="flex-1 flex min-h-0">
-                  <div className={(mobileShowChat ? 'hidden' : 'flex') + ' md:flex w-full md:w-auto min-h-0'}>
-                    <Sidebar
-                      selectedSession={selectedSession}
-                      onSelectSession={setSelectedSession}
-                    />
+      <ChatStatusProvider>
+        <div className="h-screen flex bg-wa-bg text-wa-text overflow-hidden">
+          <NavRail
+            agencyName={settings?.agency_name}
+            agencyLogoUrl={settings?.agency_logo_url}
+            onLogout={handleLogout}
+            onNavigate={handleNavigate}
+          />
+          <div className="flex-1 flex flex-col min-w-0 pb-14 md:pb-0">
+            <TopStatsBar agencyName={settings?.agency_name} />
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <div className="flex-1 flex min-h-0">
+                    <div className={(mobileShowChat ? 'hidden' : 'flex') + ' md:flex w-full md:w-auto min-h-0'}>
+                      <Sidebar
+                        selectedSession={selectedSession}
+                        onSelectSession={setSelectedSession}
+                      />
+                    </div>
+                    <div className={(mobileShowChat ? 'flex' : 'hidden') + ' md:flex flex-1 min-w-0 min-h-0'}>
+                      <ChatWindow
+                        sessionId={selectedSession}
+                        onBack={() => setSelectedSession(null)}
+                        staffName={staffName}
+                      />
+                    </div>
                   </div>
-                  <div className={(mobileShowChat ? 'flex' : 'hidden') + ' md:flex flex-1 min-w-0 min-h-0'}>
-                    <ChatWindow
-                      sessionId={selectedSession}
-                      onBack={() => setSelectedSession(null)}
-                    />
-                  </div>
-                </div>
-              }
-            />
-            <Route path="/bookings" element={<BookingsPage />} />
-            <Route path="/settings" element={<SettingsPage settings={settings} onSaved={refreshSettings} />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+                }
+              />
+              <Route path="/bookings" element={<BookingsPage />} />
+              <Route path="/settings" element={<SettingsPage settings={settings} onSaved={refreshSettings} />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+          <BottomNav onLogout={handleLogout} onNavigate={handleNavigate} />
         </div>
-        <BottomNav onLogout={handleLogout} onNavigate={handleNavigate} />
-      </div>
+      </ChatStatusProvider>
     </CustomerNamesProvider>
   )
 }
