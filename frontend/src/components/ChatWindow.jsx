@@ -90,6 +90,12 @@ export default function ChatWindow({ sessionId, onBack, staffName }) {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'n8n_chat_histories' },
         (payload) => {
+          console.log('[ChatWindow] realtime INSERT received', {
+            watchingSessionId: sessionId,
+            payloadSessionId: payload.new?.session_id,
+            matches: payload.new?.session_id === sessionId,
+            payload: payload.new
+          })
           if (payload.new?.session_id !== sessionId) return
           setMessages((prev) => {
             if (prev.some(m => m.id === payload.new.id)) return prev
@@ -102,7 +108,9 @@ export default function ChatWindow({ sessionId, onBack, staffName }) {
         { event: '*', schema: 'public', table: 'bookings', filter: `session_id=eq.${sessionId}` },
         () => loadBooking()
       )
-      .subscribe()
+      .subscribe((status, err) => {
+        console.log('[ChatWindow] channel subscribe status', { sessionId, status, err })
+      })
 
     return () => {
       mounted = false
