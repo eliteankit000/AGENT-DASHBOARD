@@ -17,12 +17,32 @@ export default function ChatWindow({ sessionId, onBack, staffName }) {
   const customerName = useCustomerName(sessionId)
   const { aiEnabled, pausedBy, setEnabled } = useChatStatus(sessionId)
   const [toggling, setToggling] = useState(false)
+  const [toggleError, setToggleError] = useState('')
   const bottomRef = useRef(null)
 
   const handleToggleAI = async (nextEnabled) => {
+                              
+    console.log('[ChatWindow] handleToggleAI', { sessionId, nextEnabled, staffName })
+    setToggleError('')
+    if (!sessionId) {
+      setToggleError('No chat selected — cannot toggle AI.')
+      return
+    }
     setToggling(true)
-    await setEnabled(nextEnabled, nextEnabled ? null : staffName)
-    setToggling(false)
+    try {
+      const result = await setEnabled(nextEnabled, nextEnabled ? null : staffName)
+                              
+      console.log('[ChatWindow] setEnabled result', result)
+      if (result?.error) {
+        setToggleError(result.error.message || 'Failed to update chat_status')
+      }
+    } catch (err) {
+                              
+      console.error('[ChatWindow] setEnabled threw', err)
+      setToggleError(err?.message || 'Unexpected error toggling AI')
+    } finally {
+      setToggling(false)
+    }
   }
 
   useEffect(() => {
@@ -152,6 +172,24 @@ export default function ChatWindow({ sessionId, onBack, staffName }) {
         )}
         <AIToggle enabled={aiEnabled} onChange={handleToggleAI} disabled={toggling} />
       </div>
+
+      {/* Toggle error banner (surfaces silent Supabase failures) */}
+      {toggleError && (
+        <div
+          className="bg-wa-cancelled/15 border-b border-wa-cancelled/40 text-wa-cancelled text-xs px-4 py-2 flex items-center justify-between gap-2"
+          data-testid="toggle-error"
+        >
+          <span>Could not update AI status: {toggleError}</span>
+          <button
+            type="button"
+            onClick={() => setToggleError('')}
+            className="text-wa-cancelled/80 hover:text-wa-cancelled px-2"
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Human-handling banner when AI is paused */}
       {!aiEnabled && (

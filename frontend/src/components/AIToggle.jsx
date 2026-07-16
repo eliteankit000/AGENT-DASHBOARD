@@ -5,9 +5,19 @@ import { Bot, UserCog } from 'lucide-react'
  * Controlled via `enabled` + `onChange(nextEnabled)`.
  */
 export default function AIToggle({ enabled, onChange, disabled }) {
-  const handleClick = () => {
+  const handleClick = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    // Log so we can prove the click reached the handler when debugging.
+                              
+    console.log('[AIToggle] click', { currentEnabled: enabled, nextEnabled: !enabled, disabled })
     if (disabled) return
-    onChange?.(!enabled)
+    if (typeof onChange !== 'function') {
+                              
+      console.warn('[AIToggle] onChange is not a function — nothing to call')
+      return
+    }
+    onChange(!enabled)
   }
   return (
     <button

@@ -109,21 +109,42 @@ export function ChatStatusProvider({ children }) {
    * `enabled=true` → hand back to AI.
    */
   const setEnabled = useCallback(async (sessionId, enabled, pausedBy) => {
-    if (!sessionId) return { error: new Error('Missing session_id') }
+                              
+    console.log('[chatStatus] setEnabled called', { sessionId, enabled, pausedBy })
+    if (!sessionId) {
+      const err = new Error('Missing session_id')
+                              
+      console.warn('[chatStatus] setEnabled: missing sessionId — aborting')
+      return { error: err }
+    }
+    if (!supabase) {
+      const err = new Error('Supabase client is not initialized')
+                              
+      console.error('[chatStatus] setEnabled:', err.message)
+      return { error: err }
+    }
     const nowIso = new Date().toISOString()
     const payload = {
       session_id: sessionId,
-      ai_enabled: enabled,
+      ai_enabled: Boolean(enabled),
       paused_by: enabled ? null : (pausedBy || null),
       updated_at: nowIso
     }
     // Optimistic — realtime UPDATE will confirm shortly
     applyRow(payload)
-    const { error } = await supabase
+
+                              
+    console.log('[chatStatus] upserting', payload)
+    const { data, error } = await supabase
       .from('chat_status')
       .upsert(payload, { onConflict: 'session_id' })
-    if (error) console.warn('chat_status upsert error', error.message)
-    return { error }
+      .select()
+                              
+    console.log('[chatStatus] upsert result', { data, error })
+    if (error) {
+      console.warn('[chatStatus] upsert error', error.code, error.message)
+    }
+    return { data, error }
   }, [applyRow])
 
   return (
@@ -134,13 +155,14 @@ export function ChatStatusProvider({ children }) {
 }
 
 export function useChatStatus(sessionId) {
-  const { statuses, setEnabled } = useContext(ChatStatusContext)
-  const row = sessionId ? statuses[sessionId] : null
+  const ctx = useContext(ChatStatusContext)
+  const row = sessionId ? ctx.statuses[sessionId] : null
   return {
     aiEnabled: row ? row.ai_enabled !== false : true, // default ON when no row
     pausedBy: row?.paused_by || null,
     updatedAt: row?.updated_at || null,
-    setEnabled: (enabled, pausedBy) => setEnabled(sessionId, enabled, pausedBy)
+    // Return the underlying promise so callers can `await` and read {data,error}
+    setEnabled: (enabled, pausedBy) => ctx.setEnabled(sessionId, enabled, pausedBy)
   }
 }
 
