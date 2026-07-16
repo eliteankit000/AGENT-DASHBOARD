@@ -24,24 +24,57 @@ create table if not exists dashboard_settings (
   admin_bootstrapped  boolean default false
 );
 
+-- Customer names linked to session_id (populated by n8n workflow)
+create table if not exists customers (
+  session_id    varchar primary key,
+  customer_name text,
+  updated_at    timestamptz default now()
+);
+
+-- AI on/off per chat (used by the dashboard's manual-handoff feature)
+create table if not exists chat_status (
+  session_id  varchar primary key,
+  ai_enabled  boolean default true,
+  paused_by   text,
+  updated_at  timestamptz default now()
+);
+
 -- Realtime
 alter publication supabase_realtime add table n8n_chat_histories;
 alter publication supabase_realtime add table bookings;
+alter publication supabase_realtime add table customers;
+alter publication supabase_realtime add table chat_status;
 
--- RLS: read-only for chats + bookings, read+write for settings
+-- RLS: read-only for chats, bookings, customers; read+write for settings & chat_status
 alter table n8n_chat_histories enable row level security;
 drop policy if exists "dashboard_read_chats" on n8n_chat_histories;
 create policy "dashboard_read_chats" on n8n_chat_histories for select using (true);
+
+-- Allow authenticated dashboard users to append manual replies to chat history
+drop policy if exists "dashboard_insert_chats" on n8n_chat_histories;
+create policy "dashboard_insert_chats" on n8n_chat_histories
+  for insert to authenticated with check (true);
 
 alter table bookings enable row level security;
 drop policy if exists "dashboard_read_bookings" on bookings;
 create policy "dashboard_read_bookings" on bookings for select using (true);
 
+alter table customers enable row level security;
+drop policy if exists "dashboard_read_customers" on customers;
+create policy "dashboard_read_customers" on customers for select using (true);
+
 alter table dashboard_settings enable row level security;
 drop policy if exists "dashboard_read_settings" on dashboard_settings;
 drop policy if exists "dashboard_write_settings" on dashboard_settings;
 create policy "dashboard_read_settings" on dashboard_settings for select using (true);
-create policy "dashboard_write_settings" on dashboard_settings for all using (true) with check (true);`
+create policy "dashboard_write_settings" on dashboard_settings for all using (true) with check (true);
+
+alter table chat_status enable row level security;
+drop policy if exists "dashboard_read_chat_status" on chat_status;
+drop policy if exists "dashboard_write_chat_status" on chat_status;
+create policy "dashboard_read_chat_status"  on chat_status for select using (true);
+create policy "dashboard_write_chat_status" on chat_status for all
+  to authenticated using (true) with check (true);`
 
 export default function SchemaMissing({ missingTables, onRetry }) {
   const [copied, setCopied] = useState(false)

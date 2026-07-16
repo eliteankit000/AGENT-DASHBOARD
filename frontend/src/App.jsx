@@ -12,6 +12,7 @@ import SettingsPage from './components/SettingsPage.jsx'
 import SchemaMissing from './components/SchemaMissing.jsx'
 import AgencyLogo from './components/AgencyLogo.jsx'
 import { CustomerNamesProvider } from './lib/customerNames.jsx'
+import { ChatStatusProvider } from './lib/chatStatus.jsx'
 import { MessageCircle, CalendarCheck, Settings as SettingsIcon, LogOut } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
@@ -223,9 +224,11 @@ export default function App() {
 
   const probeBookingsTable = useCallback(async () => {
     if (!supabase) return
-    const { error } = await supabase.from('bookings').select('id', { head: true, count: 'exact' }).limit(1)
-    if (error && TABLE_MISSING_CODES.has(error.code)) {
-      setMissingTables((prev) => Array.from(new Set([...prev, 'bookings'])))
+    for (const table of ['bookings', 'chat_status']) {
+      const { error } = await supabase.from(table).select('*').limit(1)
+      if (error && TABLE_MISSING_CODES.has(error.code)) {
+        setMissingTables((prev) => Array.from(new Set([...prev, table])))
+      }
     }
   }, [])
 
@@ -297,5 +300,5 @@ export default function App() {
   }
 
   // Step 4: main dashboard
-  return <DashboardShell settings={settings} refreshSettings={loadSettings} />
+  return <DashboardShell settings={settings} refreshSettings={loadSettings} session={session} />
 }

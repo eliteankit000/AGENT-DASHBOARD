@@ -2,16 +2,27 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import MessageBubble from './MessageBubble.jsx'
 import BookingBadge from './BookingBadge.jsx'
-import { MessageSquare, User, Phone, ArrowLeft } from 'lucide-react'
+import { MessageSquare, User, Phone, ArrowLeft, UserCog } from 'lucide-react'
 import { useCustomerName } from '../lib/customerNames.jsx'
+import { useChatStatus } from '../lib/chatStatus.jsx'
 import PhonePill from './PhonePill.jsx'
+import AIToggle from './AIToggle.jsx'
+import MessageComposer from './MessageComposer.jsx'
 
-export default function ChatWindow({ sessionId, onBack }) {
+export default function ChatWindow({ sessionId, onBack, staffName }) {
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(false)
   const [booking, setBooking] = useState(null)
   const customerName = useCustomerName(sessionId)
+  const { aiEnabled, pausedBy, setEnabled } = useChatStatus(sessionId)
+  const [toggling, setToggling] = useState(false)
   const bottomRef = useRef(null)
+
+  const handleToggleAI = async (nextEnabled) => {
+    setToggling(true)
+    await setEnabled(nextEnabled, nextEnabled ? null : staffName)
+    setToggling(false)
+  }
 
   useEffect(() => {
     if (!sessionId) {
@@ -138,7 +149,20 @@ export default function ChatWindow({ sessionId, onBack }) {
         {booking && (
           <BookingBadge status={booking.status} data-testid="chat-header-booking" />
         )}
+        <AIToggle enabled={aiEnabled} onChange={handleToggleAI} disabled={toggling} />
       </div>
+
+      {/* Human-handling banner when AI is paused */}
+      {!aiEnabled && (
+        <div
+          className="bg-wa-pending/15 border-b border-wa-pending/40 text-wa-pending text-xs px-4 py-2 flex items-center gap-2"
+          data-testid="human-handling-banner"
+        >
+          <UserCog size={13} />
+          <span className="font-semibold">Human handling — AI paused</span>
+          {pausedBy && <span className="text-wa-pending/80">· by {pausedBy}</span>}
+        </div>
+      )}
 
       {/* Pinned booking summary */}
       {booking && (
@@ -164,10 +188,14 @@ export default function ChatWindow({ sessionId, onBack }) {
         <div ref={bottomRef} />
       </div>
 
-      {/* Read-only footer note */}
-      <div className="bg-wa-panel border-t border-wa-border px-4 py-2 text-[11px] text-wa-muted text-center">
-        Read-only view — messages are handled by the AI agent
-      </div>
+      {/* Footer: composer when human-handling, read-only note otherwise */}
+      {aiEnabled ? (
+        <div className="bg-wa-panel border-t border-wa-border px-4 py-2 text-[11px] text-wa-muted text-center" data-testid="chat-readonly-footer">
+          Read-only view — messages are handled by the AI agent
+        </div>
+      ) : (
+        <MessageComposer sessionId={sessionId} staffName={staffName} />
+      )}
     </div>
   )
 }

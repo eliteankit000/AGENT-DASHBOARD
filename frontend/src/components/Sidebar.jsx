@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
-import { Search, User } from 'lucide-react'
+import { Search, User, UserCog } from 'lucide-react'
 import { useCustomerNames } from '../lib/customerNames.jsx'
+import { usePausedSessions } from '../lib/chatStatus.jsx'
 import PhonePill from './PhonePill.jsx'
 
 function extractPreview(message) {
@@ -27,6 +28,7 @@ export default function Sidebar({ selectedSession, onSelectSession }) {
   const [search, setSearch] = useState('')
   const [pulseIds, setPulseIds] = useState({})
   const { names: customerNames } = useCustomerNames()
+  const chatStatuses = usePausedSessions()
   const selectedRef = useRef(selectedSession)
   useEffect(() => { selectedRef.current = selectedSession }, [selectedSession])
 
@@ -162,6 +164,7 @@ export default function Sidebar({ selectedSession, onSelectSession }) {
               const active = s.session_id === selectedSession
               const pulsing = Boolean(pulseIds[s.session_id])
               const name = customerNames[s.session_id]
+              const paused = chatStatuses[s.session_id]?.ai_enabled === false
               return (
                 <li key={s.session_id}>
                   <button
@@ -172,8 +175,19 @@ export default function Sidebar({ selectedSession, onSelectSession }) {
                       (active ? 'bg-wa-hover' : 'hover:bg-wa-hover/70 active:bg-wa-hover')
                     }
                   >
-                    <div className="w-10 h-10 rounded-full bg-wa-hover border border-wa-border flex items-center justify-center text-wa-muted shrink-0">
-                      <User size={18} />
+                    <div className="relative shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-wa-hover border border-wa-border flex items-center justify-center text-wa-muted">
+                        <User size={18} />
+                      </div>
+                      {paused && (
+                        <span
+                          data-testid={`paused-dot-${s.session_id}`}
+                          title="AI paused — human handling"
+                          className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-wa-pending border-2 border-wa-panel flex items-center justify-center"
+                        >
+                          <UserCog size={9} strokeWidth={3} className="text-wa-bg" />
+                        </span>
+                      )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
