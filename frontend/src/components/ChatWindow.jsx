@@ -88,8 +88,9 @@ export default function ChatWindow({ sessionId, onBack, staffName }) {
       .channel(`chat-${sessionId}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'n8n_chat_histories', filter: `session_id=eq.${sessionId}` },
+        { event: 'INSERT', schema: 'public', table: 'n8n_chat_histories' },
         (payload) => {
+          if (payload.new?.session_id !== sessionId) return
           setMessages((prev) => {
             if (prev.some(m => m.id === payload.new.id)) return prev
             return [...prev, payload.new]
