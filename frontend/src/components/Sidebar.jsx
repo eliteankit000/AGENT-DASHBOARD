@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient.js'
 import { Search, User, UserCog } from 'lucide-react'
 import { useCustomerNames } from '../lib/customerNames.jsx'
 import { usePausedSessions } from '../lib/chatStatus.jsx'
+import { isValidSessionId } from '../lib/sessionId.js'
 import PhonePill from './PhonePill.jsx'
 
 function extractPreview(message) {
@@ -71,6 +72,8 @@ export default function Sidebar({ selectedSession, onSelectSession }) {
       }
       const map = new Map()
       for (const row of data || []) {
+        // Skip n8n's placeholder rows so we never show "unknown_session"
+        if (!isValidSessionId(row.session_id)) continue
         if (!map.has(row.session_id)) {
           map.set(row.session_id, {
             session_id: row.session_id,
@@ -96,6 +99,7 @@ export default function Sidebar({ selectedSession, onSelectSession }) {
         (payload) => {
           const row = payload.new
           if (!row?.session_id) return
+          if (!isValidSessionId(row.session_id)) return
           const preview = extractPreview(row.message)
           upsertSession(row.session_id, preview, new Date().toISOString(), true)
           // Trigger pulse

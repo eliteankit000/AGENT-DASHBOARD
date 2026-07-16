@@ -5,6 +5,7 @@ import BookingBadge from './BookingBadge.jsx'
 import { MessageSquare, User, Phone, ArrowLeft, UserCog } from 'lucide-react'
 import { useCustomerName } from '../lib/customerNames.jsx'
 import { useChatStatus } from '../lib/chatStatus.jsx'
+import { sessionIdLabel, isValidSessionId } from '../lib/sessionId.js'
 import PhonePill from './PhonePill.jsx'
 import AIToggle from './AIToggle.jsx'
 import MessageComposer from './MessageComposer.jsx'
@@ -132,14 +133,14 @@ export default function ChatWindow({ sessionId, onBack, staffName }) {
               >
                 {customerName}
               </span>
-              <PhonePill phone={sessionId} />
+              {isValidSessionId(sessionId) && <PhonePill phone={sessionId} />}
             </div>
           ) : (
             <div
               className="text-sm font-medium text-wa-text truncate"
               data-testid="chat-header-phone"
             >
-              {sessionId}
+              {sessionIdLabel(sessionId)}
             </div>
           )}
           <div className="text-xs text-wa-muted flex items-center gap-1 mt-0.5">

@@ -1,10 +1,14 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from './supabaseClient.js'
 
 /**
  * Global chat_status store.
  * Row shape: { session_id, ai_enabled, paused_by, updated_at }
  * Absence of a row means ai_enabled = true (default AI ON).
+ *
+ * Realtime: listens for every change event on public.chat_status so that
+ * external mutations (n8n tool calls, direct Supabase edits) reflect in the
+ * dashboard within ~1s, without a page refresh.
  */
 const ChatStatusContext = createContext({
   statuses: {},
@@ -18,55 +22,82 @@ export function ChatStatusProvider({ children }) {
   const [statuses, setStatuses] = useState({})
   const [ready, setReady] = useState(false)
   const [tableMissing, setTableMissing] = useState(false)
+  const tableMissingRef = useRef(false)
 
   const applyRow = useCallback((row) => {
     if (!row?.session_id) return
     setStatuses((prev) => ({ ...prev, [row.session_id]: row }))
   }, [])
 
+  const dropRow = useCallback((row) => {
+    const sid = row?.session_id
+    if (!sid) return
+    setStatuses((prev) => {
+      if (!(sid in prev)) return prev
+      const next = { ...prev }
+      delete next[sid]
+      return next
+    })
+  }, [])
+
+  // Full re-fetch, used on subscribe/reconnect to sync any events we may
+  // have missed while the socket wasn't yet SUBSCRIBED.
+  const refetchAll = useCallback(async () => {
+    if (tableMissingRef.current) return
+    const { data, error } = await supabase
+      .from('chat_status')
+      .select('session_id, ai_enabled, paused_by, updated_at')
+    if (error) {
+      if (error.code === 'PGRST205' || error.code === '42P01') {
+        tableMissingRef.current = true
+        setTableMissing(true)
+      } else {
+        console.warn('chat_status refetch error', error.message)
+      }
+      return
+    }
+    const map = {}
+    for (const r of data || []) map[r.session_id] = r
+    setStatuses(map)
+  }, [])
+
   useEffect(() => {
     let mounted = true
 
-    const load = async () => {
-      const { data, error } = await supabase
-        .from('chat_status')
-        .select('session_id, ai_enabled, paused_by, updated_at')
-      if (!mounted) return
-      if (error) {
-        if (error.code === 'PGRST205' || error.code === '42P01') {
-          setTableMissing(true)
-        } else {
-          console.warn('chat_status load error', error.message)
-        }
-        setReady(true)
-        return
-      }
-      const map = {}
-      for (const r of data || []) map[r.session_id] = r
-      setStatuses(map)
-      setReady(true)
-    }
-    load()
+    ;(async () => {
+      await refetchAll()
+      if (mounted) setReady(true)
+    })()
 
     const channel = supabase
-      .channel('chat-status')
+      .channel('chat-status-realtime')
+      // Catch-all: INSERT, UPDATE, DELETE — external tools writing directly
+      // to the table (n8n, Supabase Studio) all land here.
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'chat_status' },
-        (payload) => applyRow(payload.new)
+        { event: '*', schema: 'public', table: 'chat_status' },
+        (payload) => {
+          if (payload.eventType === 'DELETE') {
+            dropRow(payload.old)
+          } else {
+            applyRow(payload.new)
+          }
+        }
       )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'chat_status' },
-        (payload) => applyRow(payload.new)
-      )
-      .subscribe()
+      .subscribe((status) => {
+        // On (re)connect, re-fetch the whole table so we don't miss anything
+        // that changed while we were connecting or offline.
+        if (status === 'SUBSCRIBED') refetchAll()
+        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.warn('chat_status realtime status:', status)
+        }
+      })
 
     return () => {
       mounted = false
       supabase.removeChannel(channel)
     }
-  }, [applyRow])
+  }, [applyRow, dropRow, refetchAll])
 
   const isPaused = useCallback(
     (sessionId) => statuses[sessionId]?.ai_enabled === false,
@@ -86,7 +117,7 @@ export function ChatStatusProvider({ children }) {
       paused_by: enabled ? null : (pausedBy || null),
       updated_at: nowIso
     }
-    // Optimistic
+    // Optimistic — realtime UPDATE will confirm shortly
     applyRow(payload)
     const { error } = await supabase
       .from('chat_status')
