@@ -84,8 +84,8 @@ export default function ChatWindow({ sessionId, onBack, staffName }) {
     loadThread()
     loadBooking()
 
-    const channel = supabase
-      .channel(`chat-${sessionId}`)
+    const messageChannel = supabase
+      .channel(`chat-messages-${sessionId}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'n8n_chat_histories' },
@@ -103,18 +103,29 @@ export default function ChatWindow({ sessionId, onBack, staffName }) {
           })
         }
       )
+      .subscribe((status, err) => {
+        console.log('[ChatWindow] message channel subscribe status', { sessionId, status, err })
+      })
+
+    const bookingChannel = supabase
+      .channel(`chat-bookings-${sessionId}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'bookings', filter: `session_id=eq.${sessionId}` },
-        () => loadBooking()
+        { event: '*', schema: 'public', table: 'bookings' },
+        (payload) => {
+          const row = payload.new || payload.old
+          if (row?.session_id !== sessionId) return
+          loadBooking()
+        }
       )
       .subscribe((status, err) => {
-        console.log('[ChatWindow] channel subscribe status', { sessionId, status, err })
+        console.log('[ChatWindow] booking channel subscribe status', { sessionId, status, err })
       })
 
     return () => {
       mounted = false
-      supabase.removeChannel(channel)
+      supabase.removeChannel(messageChannel)
+      supabase.removeChannel(bookingChannel)
     }
   }, [sessionId])
 
