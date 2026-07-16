@@ -7,7 +7,16 @@ import { isValidSessionId } from '../lib/sessionId.js'
 import PhonePill from './PhonePill.jsx'
 
 function extractPreview(message) {
-  const content = message?.content
+  // Defensive: some rows may have the jsonb column holding a JSON-encoded
+  // STRING instead of a real object (e.g. a double-stringified insert).
+  // Unwrap until we get a real object before reading .content.
+  let value = message
+  let attempts = 0
+  while (typeof value === 'string' && attempts < 3) {
+    try { value = JSON.parse(value) } catch { break }
+    attempts += 1
+  }
+  const content = value && typeof value === 'object' ? value.content : undefined
   if (typeof content === 'string') return content
   if (content == null) return ''
   try { return JSON.stringify(content) } catch { return '' }
