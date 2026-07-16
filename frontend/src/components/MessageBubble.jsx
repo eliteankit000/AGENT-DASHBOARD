@@ -10,11 +10,32 @@ function formatTime(ts) {
   }
 }
 
+function normalizeMessage(raw) {
+  // Defensive: some rows may have been inserted with the jsonb column
+  // holding a JSON-encoded STRING instead of a real JSON object (e.g. a
+  // double-stringified value from an external insert). Unwrap until we
+  // get a real object, without throwing on genuinely malformed data.
+  let value = raw
+  let attempts = 0
+  while (typeof value === 'string' && attempts < 3) {
+    try {
+      value = JSON.parse(value)
+    } catch {
+      break
+    }
+    attempts += 1
+  }
+  return value && typeof value === 'object' ? value : null
+}
+
 export default function MessageBubble({ message, timestamp }) {
-  const isAi = message?.type === 'ai'
-  const content = typeof message?.content === 'string'
-    ? message.content
-    : JSON.stringify(message?.content ?? '', null, 2)
+  const normalized = normalizeMessage(message)
+  const isAi = normalized?.type === 'ai'
+  const content = normalized == null
+    ? '[Unreadable message]'
+    : typeof normalized.content === 'string'
+      ? normalized.content
+      : JSON.stringify(normalized.content ?? '', null, 2)
 
   return (
     <div
