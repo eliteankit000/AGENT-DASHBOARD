@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
-import { Search, User, UserCog } from 'lucide-react'
+import { Search, User, UserCog, Trash2 } from 'lucide-react'
 import { useCustomerNames } from '../lib/customerNames.jsx'
 import { usePausedSessions } from '../lib/chatStatus.jsx'
 import { isValidSessionId } from '../lib/sessionId.js'
@@ -37,6 +37,7 @@ export default function Sidebar({ selectedSession, onSelectSession }) {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [pulseIds, setPulseIds] = useState({})
+  const [deletingId, setDeletingId] = useState(null)
   const { names: customerNames } = useCustomerNames()
   const chatStatuses = usePausedSessions()
   const selectedRef = useRef(selectedSession)
@@ -60,6 +61,32 @@ export default function Sidebar({ selectedSession, onSelectSession }) {
         return tb - ta
       })
     })
+  }
+
+  const handleDeleteSession = async (e, sessionId) => {
+    e.stopPropagation()
+    if (deletingId) return
+    const confirmed = window.confirm('Delete this chat? This will remove the conversation history permanently.')
+    if (!confirmed) return
+
+    setDeletingId(sessionId)
+    const { error } = await supabase
+      .from('n8n_chat_histories')
+      .delete()
+      .eq('session_id', sessionId)
+
+    setDeletingId(null)
+
+    if (error) {
+      console.warn('delete chat error', error.message)
+      window.alert('Could not delete this chat: ' + error.message)
+      return
+    }
+
+    setSessions((prev) => prev.filter((s) => s.session_id !== sessionId))
+    if (selectedRef.current === sessionId) {
+      onSelectSession(null)
+    }
   }
 
   useEffect(() => {
@@ -179,12 +206,12 @@ export default function Sidebar({ selectedSession, onSelectSession }) {
               const name = customerNames[s.session_id]
               const paused = chatStatuses[s.session_id]?.ai_enabled === false
               return (
-                <li key={s.session_id}>
+                <li key={s.session_id} className="relative group flex items-stretch">
                   <button
                     data-testid={`chat-item-${s.session_id}`}
                     onClick={() => onSelectSession(s.session_id)}
                     className={
-                      'w-full text-left flex items-center gap-3 px-3 py-3 min-h-[60px] border-b border-wa-border/60 transition-colors ' +
+                      'flex-1 min-w-0 text-left flex items-center gap-3 px-3 py-3 min-h-[60px] border-b border-wa-border/60 transition-colors ' +
                       (active ? 'bg-wa-hover' : 'hover:bg-wa-hover/70 active:bg-wa-hover')
                     }
                   >
@@ -241,6 +268,20 @@ export default function Sidebar({ selectedSession, onSelectSession }) {
                         )}
                       </div>
                     </div>
+                  </button>
+                  <button
+                    type="button"
+                    data-testid={`chat-delete-${s.session_id}`}
+                    onClick={(e) => handleDeleteSession(e, s.session_id)}
+                    disabled={deletingId === s.session_id}
+                    aria-label="Delete chat"
+                    title="Delete chat"
+                    className={
+                      'shrink-0 w-10 flex items-center justify-center border-b border-wa-border/60 text-wa-muted hover:text-wa-cancelled hover:bg-wa-hover md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 transition-opacity disabled:opacity-50 ' +
+                      (active ? 'bg-wa-hover' : '')
+                    }
+                  >
+                    <Trash2 size={15} />
                   </button>
                 </li>
               )
